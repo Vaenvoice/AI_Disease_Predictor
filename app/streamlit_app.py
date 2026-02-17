@@ -18,32 +18,24 @@ def load_data(disease):
 def create_gauge(probability):
     """Creates a risk percentage gauge chart using Plotly."""
     risk_pct = round(probability * 100, 2)
-    
-    # Color logic: Green for low risk, Red for high risk
     color = "green" if risk_pct < 50 else "red"
     
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
         value=risk_pct,
-        title={'text': "Risk Percentage (%)", 'font': {'size': 24}},
+        title={'text': "Risk Percentage (%)", 'font': {'size': 20}},
         gauge={
             'axis': {'range': [0, 100], 'tickwidth': 1},
             'bar': {'color': color},
             'bgcolor': "white",
-            'borderwidth': 2,
-            'bordercolor': "gray",
             'steps': [
                 {'range': [0, 50], 'color': 'rgba(0, 255, 0, 0.1)'},
                 {'range': [50, 100], 'color': 'rgba(255, 0, 0, 0.1)'}
             ],
-            'threshold': {
-                'line': {'color': "black", 'width': 4},
-                'thickness': 0.75,
-                'value': 50
-            }
+            'threshold': {'line': {'color': "black", 'width': 4}, 'value': 50}
         }
     ))
-    fig.update_layout(height=300, margin=dict(l=20, r=20, t=50, b=20))
+    fig.update_layout(height=250, margin=dict(l=20, r=20, t=50, b=20))
     return fig
 
 # --- SIDEBAR (LEFT TASKBAR) ---
@@ -52,21 +44,25 @@ with st.sidebar:
     st.write("Select a disease to begin analysis.")
     page = st.radio("Navigation", ["Home", "Diabetes", "Heart Disease", "Kidney Disease", "Parkinson's"])
     st.divider()
-    st.write("**Student Project Info:**")
+    st.write("**Project Info:**")
     st.write("Developer: Pragyan")
 
 # --- HOME PAGE ---
 if page == "Home":
     st.title("Multiple Disease Prediction System")
-    st.write("This application uses trained Machine Learning models to analyze clinical data and predict the risk of various chronic diseases.")
+    st.markdown("""
+    This application uses trained **Machine Learning** models to analyze clinical data and predict the risk of various chronic diseases.
+    It is designed to provide quick diagnostic insights based on medical parameters.
+    """)
     
-    st.subheader("Model Accuracy Report")
+    st.subheader("Model Performance Summary")
     stats = {
         "Disease": ["Diabetes", "Heart Disease", "Kidney Disease", "Parkinson's"],
         "Best Model": ["Random Forest", "Random Forest", "SVM", "Random Forest"],
         "Test Accuracy": ["74.02%", "82.15%", "95.50%", "88.20%"]
     }
     st.table(pd.DataFrame(stats))
+    st.info("💡 Select a disease from the sidebar to start a new prediction.")
 
 # --- DIABETES ---
 elif page == "Diabetes":
@@ -76,6 +72,8 @@ elif page == "Diabetes":
     with st.expander("📖 Medical Definitions"):
         st.write("- **Glucose:** Blood sugar level. Normal is typically <140 mg/dL.")
         st.write("- **BMI:** Body Mass Index. A measure of body fat based on height/weight.")
+        st.write("- **Insulin:** Level of insulin in the blood (helps regulate sugar).")
+        st.write("- **Pedigree Function:** A score based on family history of diabetes.")
     
     col1, col2 = st.columns([2, 1])
     with col1:
@@ -91,7 +89,7 @@ elif page == "Diabetes":
             dpf = st.number_input("Diabetes Pedigree Function", 0.0, 3.0, 0.5)
             age = st.number_input("Age", 1, 120, 30)
 
-        if st.button("Calculate Risk"):
+        if st.button("Calculate Diabetes Risk"):
             model, scaler = load_data("diabetes")
             data = np.array([[preg, glu, bp, stk, ins, bmi, dpf, age]])
             scaled_data = scaler.transform(data)
@@ -109,7 +107,13 @@ elif page == "Diabetes":
 elif page == "Heart Disease":
     st.title("Heart Health Analysis")
     st.info("Best Model: **Random Forest** | Accuracy: **82.15%**")
-    
+
+    with st.expander("📖 Medical Definitions"):
+        st.write("- **Chest Pain Type (CP):** 0: Typical Angina, 1: Atypical, 2: Non-anginal, 3: Asymptomatic.")
+        st.write("- **Resting BP:** Blood pressure while resting (Normal: ~120/80 mmHg).")
+        st.write("- **Cholesterol:** Total serum cholesterol level (mg/dl).")
+        st.write("- **Thalach:** Maximum heart rate achieved during exercise.")
+
     col1, col2 = st.columns([2, 1])
     with col1:
         c1, c2 = st.columns(2)
@@ -129,7 +133,7 @@ elif page == "Heart Disease":
             ca = st.selectbox("Major Vessels", [0, 1, 2, 3])
             thal = st.selectbox("Thalassemia", [0, 1, 2, 3])
 
-        if st.button("Calculate Risk"):
+        if st.button("Calculate Heart Risk"):
             model, scaler = load_data("heart")
             inputs = np.array([[age, sex, cp, trbps, chol, fbs, restecg, thalach, exang, oldpeak, slope, ca, thal]])
             scaled = scaler.transform(inputs)
@@ -144,7 +148,13 @@ elif page == "Heart Disease":
 elif page == "Kidney Disease":
     st.title("Chronic Kidney Disease Diagnostic")
     st.info("Best Model: **SVM** | Accuracy: **95.50%**")
-    
+
+    with st.expander("📖 Medical Definitions"):
+        st.write("- **Specific Gravity:** Urine concentration. Lower values can indicate kidney issues.")
+        st.write("- **Albumin:** Protein in urine. High levels suggest filter damage (Normal: 0).")
+        st.write("- **Serum Creatinine:** Waste product. High levels mean poor filtering.")
+        st.write("- **Hemoglobin:** Low levels often follow kidney function decline (Anemia).")
+
     col1, col2 = st.columns([2, 1])
     with col1:
         c1, c2 = st.columns(2)
@@ -163,13 +173,12 @@ elif page == "Kidney Disease":
             pot = st.number_input("Potassium", 0.0, 50.0, 4.5)
             hemo = st.number_input("Hemoglobin", 0.0, 20.0, 13.0)
 
-        if st.button("Calculate Risk"):
+        if st.button("Calculate Kidney Risk"):
             model, scaler = load_data("kidney")
             full_data = np.zeros(28)
             full_data[0:12] = [age, bp, sg, al, su, rbc, bgr, bu, sc, sod, pot, hemo]
             scaled = scaler.transform(full_data.reshape(1, -1))
             
-            # SVM usually needs probability=True during training for predict_proba
             try:
                 prob = model.predict_proba(scaled)[0][1]
             except:
@@ -182,6 +191,12 @@ elif page == "Kidney Disease":
 elif page == "Parkinson's":
     st.title("Parkinson's Disease Screening")
     st.info("Best Model: **Random Forest** | Accuracy: **88.20%**")
+
+    with st.expander("📖 Medical Definitions"):
+        st.write("- **MDVP:Fo(Hz):** Average vocal fundamental frequency.")
+        st.write("- **Jitter & Shimmer:** Measures of voice frequency and amplitude stability.")
+        st.write("- **HNR:** Harmonics-to-Noise Ratio (Voice clarity).")
+        st.write("- **Spread1 & PPE:** Specialized measures of vocal variation used in Parkinson's detection.")
     
     col1, col2 = st.columns([2, 1])
     with col1:
@@ -197,7 +212,7 @@ elif page == "Parkinson's":
             spr1 = st.number_input("Spread1", -10.0, 0.0, -5.0)
             ppe = st.number_input("PPE", 0.0, 1.0, 0.2)
 
-        if st.button("Calculate Risk"):
+        if st.button("Calculate Parkinson's Risk"):
             model, scaler = load_data("parkinsons")
             full_data = np.zeros(22)
             full_data[0:4] = [fo, fhi, flo, jit]
