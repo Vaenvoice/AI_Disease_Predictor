@@ -1,0 +1,15 @@
+# Python environment files
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+
+# Data and Models (Optional: keep these if you want others to see your models)
+# data/raw/
+# models/*.pkl
+
+# OS files
+.DS_Store
+.vscode/
+.idea/
