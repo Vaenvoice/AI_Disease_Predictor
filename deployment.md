@@ -8,15 +8,17 @@ Render is an excellent choice for full-stack applications with a Python backend 
 
 ### 1. Deploy the Backend (FastAPI)
 - **Service Type**: Web Service
-- **Build Command**: `pip install -r requirements.txt`
+- **Link**: [https://ai-disease-predictor-nbdj.onrender.com](https://ai-disease-predictor-nbdj.onrender.com)
+- **Build Command**: `pip install -r backend/requirements.txt`
 - **Start Command**: `gunicorn -w 4 -k uvicorn.workers.UvicornWorker backend.main:app`
-- **Environment Variables**: Set `ARTIFACTS_PATH` if needed, though absolute paths should work if the folder structure is preserved.
+- **Root Directory**: `.` (Project Root)
 
 ### 2. Deploy the Frontend (React/Vite)
 - **Service Type**: Static Site
-- **Build Command**: `npm install && npm run build`
+- **Link**: [https://vaen-health.onrender.com](https://vaen-health.onrender.com)
+- **Build Command**: `cd frontend && npm install && npm run build`
 - **Publish Directory**: `frontend/dist`
-- **Environment Variables**: Set `VITE_API_BASE` to your Backend URL.
+- **Environment Variables**: Set `VITE_API_BASE` to `https://ai-disease-predictor-nbdj.onrender.com`.
 
 ##  alternativas (Vercel + Railway)
 - **Frontend**: Deploy to **Vercel** (connect your GitHub repo, select the `frontend` directory).
