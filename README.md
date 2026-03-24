@@ -10,6 +10,10 @@ Vaen Health AI is a professional, full-stack medical diagnostic platform that us
 - **Clinical Interpretability**: Real-time tooltips providing medical context for complex clinical parameters.
 - **Privacy-Centric**: Fast, locally-driven inferences using a robust FastAPI backend.
 
+## 📸 UI Showcase
+
+Refer to the `reports/` directory for visual previews and model performance metrics.
+
 ## 🏗️ Architecture & System Flow
 
 Vaen Health AI follows a modern decoupled architecture designed for high-performance clinical inference.
@@ -65,9 +69,6 @@ graph TD
 1. Navigate to `frontend/`
 2. Install dependencies: `npm install`
 3. Start the dev server: `npm run dev` (Runs on http://localhost:5173)
-
-## 📸 UI Showcase
-Refer to the `reports/` directory for visual previews and model performance metrics.
 
 ## ⚖️ License
 MIT License - Created for educational and clinical research purposes by the Vaen Health team.
