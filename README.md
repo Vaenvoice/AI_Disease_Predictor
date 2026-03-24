@@ -10,12 +10,45 @@ Vaen Health AI is a professional, full-stack medical diagnostic platform that us
 - **Clinical Interpretability**: Real-time tooltips providing medical context for complex clinical parameters.
 - **Privacy-Centric**: Fast, locally-driven inferences using a robust FastAPI backend.
 
-## 🛠️ Architecture
+## 🏗️ Architecture & System Flow
 
-- **Frontend**: React (Vite) + CSS (Premium Minimalist Design)
-- **Backend**: FastAPI (Python)
-- **ML Models**: Scikit-learn (Random Forest, SVM)
-- **Persistence**: Joblib Artifacts
+Vaen Health AI follows a modern decoupled architecture designed for high-performance clinical inference.
+
+### High-Level Architecture
+```mermaid
+graph TD
+    User((User)) -->|Inputs Data| React[React Frontend]
+    React -->|POST Request| FastAPI[FastAPI Backend]
+    
+    subgraph "Backend Engine"
+        FastAPI -->|JSON Payload| Ingest[Input Validation]
+        Ingest -->|NumPy Array| Scaler[Standard Scaler]
+        Scaler -->|Transformed Data| Model[ML Model: RF/SVM]
+        Model -->|Inference Result| Response[JSON Response]
+    end
+    
+    Response -->|Risk % + Latency| React
+    React -->|Visual Feedback| User
+```
+
+### System Workflow
+1. **Clinical Data Entry**: The user selects a diagnostic module (e.g., Kidney Disease) and inputs clinical parameters.
+2. **Real-time Validation**: React manages input states and provides tooltips for each parameter.
+3. **Optimized Inference**: 
+   - On submission, a JSON payload is sent to the FastAPI backend.
+   - The backend uses pre-loaded `Joblib` artifacts for zero-latency model initialization.
+   - Raw data is converted to `NumPy` arrays for high-speed mathematical transformation.
+4. **Diagnostic Result**: 
+   - The model calculates the risk probability.
+   - The backend includes execution latency metrics in the response.
+   - The frontend renders an interactive SVG gauge and status message based on the risk score.
+
+## 🛠️ Tech Stack
+
+- **Frontend**: React 18, Vite, Vanilla CSS (Premium Glassmorphism Design)
+- **Backend**: FastAPI (Python 3.10+), Uvicorn
+- **ML & Data**: Scikit-Learn, NumPy, Joblib
+- **Performance**: Optimized NumPy-based single-row inference engine
 
 ## 📦 Installation & Setup
 
