@@ -1,15 +1,23 @@
-# Python environment files
+# Node
+node_modules/
+dist/
+.env
+
+# Python
 __pycache__/
-*.py[cod]
-*$py.class
+*.pyc
 venv/
-env/
+.venv/
+
+# IDEs
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
 
 # Data and Models (Optional: keep these if you want others to see your models)
 # data/raw/
-# models/*.pkl
-
-# OS files
-.DS_Store
 .vscode/
 .idea/
