@@ -141,48 +141,64 @@ def home():
     return {"message": "AI Disease Predictor API is running."}
 
 @app.post("/predict/diabetes")
-def predict_diabetes(data: DiabetesInput):
+async def predict_diabetes(data: DiabetesInput):
     start_time = time.time()
     try:
+        logger.info("Processing diabetes prediction request...")
         model, scaler = load_artifacts("diabetes")
         # Use NumPy for faster processing than Pandas for single-row inference
         input_data = np.array([[data.Pregnancies, data.Glucose, data.BloodPressure, data.SkinThickness, data.Insulin, data.BMI, data.DiabetesPedigreeFunction, data.Age]])
+        
+        logger.debug("Scaling features...")
         scaled_features = scaler.transform(input_data)
+        
+        logger.debug("Running model inference...")
         prob = model.predict_proba(scaled_features)[0][1]
         
         latency = (time.time() - start_time) * 1000
         logger.info(f"Diabetes prediction completed in {latency:.2f}ms")
         return {"risk_probability": float(prob), "prediction": int(prob > 0.5), "latency_ms": latency}
     except Exception as e:
-        logger.error(f"Diabetes prediction error: {e}")
+        logger.error(f"Diabetes prediction error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/predict/heart")
-def predict_heart(data: HeartInput):
+async def predict_heart(data: HeartInput):
     start_time = time.time()
     try:
+        logger.info("Processing heart prediction request...")
         model, scaler = load_artifacts("heart")
         input_data = np.array([[data.age, data.sex, data.cp, data.trestbps, data.chol, data.fbs, data.restecg, data.thalach, data.exang, data.oldpeak, data.slope, data.ca, data.thal]])
+        
+        logger.debug("Scaling features...")
         scaled_features = scaler.transform(input_data)
+        
+        logger.debug("Running model inference...")
         prob = model.predict_proba(scaled_features)[0][1]
         
         latency = (time.time() - start_time) * 1000
         logger.info(f"Heart prediction completed in {latency:.2f}ms")
         return {"risk_probability": float(prob), "prediction": int(prob > 0.5), "latency_ms": latency}
     except Exception as e:
-        logger.error(f"Heart prediction error: {e}")
+        logger.error(f"Heart prediction error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/predict/kidney")
-def predict_kidney(data: KidneyInput):
+async def predict_kidney(data: KidneyInput):
     start_time = time.time()
     try:
+        logger.info("Processing kidney prediction request...")
         model, scaler = load_artifacts("kidney")
         input_data = np.array([[data.bp_diastolic, data.bp_limit, data.sg, data.al, data.rbc, data.su, data.pc, data.pcc, data.ba, data.bgr, data.bu, data.sod, data.sc, data.pot, data.hemo, data.pcv, data.rbcc, data.wbcc, data.htn, data.dm, data.cad, data.appet, data.pe, data.ane, data.grf, data.stage, data.affected, data.age]])
+        
+        logger.debug("Scaling features...")
         scaled_features = scaler.transform(input_data)
+        
+        logger.debug("Running model inference...")
         try:
             prob = model.predict_proba(scaled_features)[0][1]
-        except:
+        except Exception:
+            logger.warning("predict_proba failed, falling back to predict")
             prediction = model.predict(scaled_features)[0]
             prob = 1.0 if prediction == 1 else 0.0
         
@@ -190,23 +206,28 @@ def predict_kidney(data: KidneyInput):
         logger.info(f"Kidney prediction completed in {latency:.2f}ms")
         return {"risk_probability": float(prob), "prediction": int(prob > 0.5), "latency_ms": latency}
     except Exception as e:
-        logger.error(f"Kidney prediction error: {e}")
+        logger.error(f"Kidney prediction error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/predict/parkinsons")
-def predict_parkinsons(data: ParkinsonsInput):
+async def predict_parkinsons(data: ParkinsonsInput):
     start_time = time.time()
     try:
+        logger.info("Processing parkinsons prediction request...")
         model, scaler = load_artifacts("parkinsons")
         input_data = np.array([[data.fo, data.fhi, data.flo, data.jitter_percent, data.jitter_abs, data.rap, data.ppq, data.ddp, data.shimmer, data.shimmer_db, data.apq3, data.apq5, data.apq, data.dda, data.nhr, data.hnr, data.rpde, data.dfa, data.spread1, data.spread2, data.d2, data.ppe]])
+        
+        logger.debug("Scaling features...")
         scaled_features = scaler.transform(input_data)
+        
+        logger.debug("Running model inference...")
         prob = model.predict_proba(scaled_features)[0][1]
         
         latency = (time.time() - start_time) * 1000
         logger.info(f"Parkinson's prediction completed in {latency:.2f}ms")
         return {"risk_probability": float(prob), "prediction": int(prob > 0.5), "latency_ms": latency}
     except Exception as e:
-        logger.error(f"Parkinson's prediction error: {e}")
+        logger.error(f"Parkinson's prediction error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":

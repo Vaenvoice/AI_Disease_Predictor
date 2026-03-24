@@ -196,12 +196,20 @@ const App = () => {
     setLoading(true);
     setResult(null);
     const startTime = performance.now();
+    
+    // Create an AbortController for the timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
+
     try {
       const response = await fetch(`${API_BASE}/predict/${activeTab}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
       const data = await response.json();
       const endTime = performance.now();
       const networkLatency = endTime - startTime;
@@ -213,8 +221,14 @@ const App = () => {
         alert(`Diagnostic analysis failed: ${data.detail || 'Internal Server Error'}`);
       }
     } catch (error) {
-      console.error("Network Error:", error);
-      alert("Failed to connect to the diagnostic engine. Please ensure the backend server is running.");
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        console.error("Request Timeout");
+        alert("The diagnostic engine is taking too long to respond. Please check your connection or try again later.");
+      } else {
+        console.error("Network Error:", error);
+        alert("Failed to connect to the diagnostic engine. Please ensure the backend server is running and reachable.");
+      }
     } finally {
       setLoading(false);
     }
