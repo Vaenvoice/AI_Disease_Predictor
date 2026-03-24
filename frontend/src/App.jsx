@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
@@ -86,121 +86,116 @@ const PARAMETER_DESCRIPTIONS = {
   ppe: "Pitch period entropy."
 };
 
+const DISEASE_FIELDS = {
+  diabetes: [
+    { name: 'Pregnancies', label: 'Pregnancies', def: 1 },
+    { name: 'Glucose', label: 'Glucose (mg/dL)', def: 120 },
+    { name: 'BloodPressure', label: 'Blood Pressure (mmHg)', def: 70 },
+    { name: 'SkinThickness', label: 'Skin Thickness (mm)', def: 20 },
+    { name: 'Insulin', label: 'Insulin (mu U/ml)', def: 80 },
+    { name: 'BMI', label: 'BMI', def: 25.0 },
+    { name: 'DiabetesPedigreeFunction', label: 'Pedigree Function', def: 0.5 },
+    { name: 'Age', label: 'Age', def: 30 }
+  ],
+  heart: [
+    { name: 'age', label: 'Age', def: 50 },
+    { name: 'sex', label: 'Sex (1=M, 0=F)', def: 1 },
+    { name: 'cp', label: 'Chest Pain (0-3)', def: 0 },
+    { name: 'trestbps', label: 'Resting BP', def: 120 },
+    { name: 'chol', label: 'Cholesterol', def: 200 },
+    { name: 'fbs', label: 'Fasting Sugar (1/0)', def: 0 },
+    { name: 'restecg', label: 'Rest ECG (0-2)', def: 0 },
+    { name: 'thalach', label: 'Max Heart Rate', def: 150 },
+    { name: 'exang', label: 'Exercise Angina (1/0)', def: 0 },
+    { name: 'oldpeak', label: 'ST Depression', def: 1.0 },
+    { name: 'slope', label: 'Slope', def: 1 },
+    { name: 'ca', label: 'Major Vessels (0-3)', def: 0 },
+    { name: 'thal', label: 'Thalassemia', def: 1 }
+  ],
+  kidney: [
+    { name: 'bp_diastolic', label: 'BP Diastolic', def: 80 },
+    { name: 'bp_limit', label: 'BP Limit', def: 0 },
+    { name: 'sg', label: 'Specific Gravity', def: 1.020 },
+    { name: 'al', label: 'Albumin', def: 0 },
+    { name: 'rbc', label: 'RBC (1=Normal, 0=Abnormal)', def: 1 },
+    { name: 'su', label: 'Sugar', def: 0 },
+    { name: 'pc', label: 'Pus Cell', def: 1 },
+    { name: 'pcc', label: 'Pus Cell Clumps', def: 0 },
+    { name: 'ba', label: 'Bacteria', def: 0 },
+    { name: 'bgr', label: 'Blood Glucose Rand', def: 120 },
+    { name: 'bu', label: 'Blood Urea', def: 40 },
+    { name: 'sod', label: 'Sodium', def: 138 },
+    { name: 'sc', label: 'Serum Creatinine', def: 1.2 },
+    { name: 'pot', label: 'Potassium', def: 4.5 },
+    { name: 'hemo', label: 'Hemoglobin', def: 13 },
+    { name: 'pcv', label: 'Packed Cell Vol', def: 40 },
+    { name: 'rbcc', label: 'RBC Count', def: 5.2 },
+    { name: 'wbcc', label: 'WBC Count', def: 8000 },
+    { name: 'htn', label: 'Hypertension (1/0)', def: 0 },
+    { name: 'dm', label: 'Diabetes Mel (1/0)', def: 0 },
+    { name: 'cad', label: 'Coronary Art (1/0)', def: 0 },
+    { name: 'appet', label: 'Appetite (1=Good, 0=Poor)', def: 1 },
+    { name: 'pe', label: 'Pedal Edema (1/0)', def: 0 },
+    { name: 'ane', label: 'Anemia (1/0)', def: 0 },
+    { name: 'grf', label: 'GFR Level', def: 60 },
+    { name: 'stage', label: 'CKD Stage', def: 1 },
+    { name: 'affected', label: 'Affected Side', def: 0 },
+    { name: 'age', label: 'Age', def: 50 }
+  ],
+  parkinsons: [
+    { name: 'fo', label: 'MDVP:Fo(Hz)', def: 120 },
+    { name: 'fhi', label: 'MDVP:Fhi(Hz)', def: 150 },
+    { name: 'flo', label: 'MDVP:Flo(Hz)', def: 100 },
+    { name: 'jitter_percent', label: 'Jitter (%)', def: 0.005 },
+    { name: 'jitter_abs', label: 'Jitter (Abs)', def: 0.00003 },
+    { name: 'rap', label: 'MDVP:RAP', def: 0.003 },
+    { name: 'ppq', label: 'MDVP:PPQ', def: 0.003 },
+    { name: 'ddp', label: 'Jitter:DDP', def: 0.008 },
+    { name: 'shimmer', label: 'Shimmer', def: 0.03 },
+    { name: 'shimmer_db', label: 'Shimmer(dB)', def: 0.2 },
+    { name: 'apq3', label: 'Shimmer:APQ3', def: 0.015 },
+    { name: 'apq5', label: 'Shimmer:APQ5', def: 0.02 },
+    { name: 'apq', label: 'MDVP:APQ', def: 0.025 },
+    { name: 'dda', label: 'Shimmer:DDA', def: 0.045 },
+    { name: 'nhr', label: 'NHR', def: 0.02 },
+    { name: 'hnr', label: 'HNR', def: 20 },
+    { name: 'rpde', label: 'RPDE', def: 0.4 },
+    { name: 'dfa', label: 'DFA', def: 0.7 },
+    { name: 'spread1', label: 'Spread1', def: -5.0 },
+    { name: 'spread2', label: 'Spread2', def: 0.2 },
+    { name: 'd2', label: 'D2', def: 2.1 },
+    { name: 'ppe', label: 'PPE', def: 0.2 }
+  ]
+};
+
 const App = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [formData, setFormData] = useState({});
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const getFields = (disease) => {
-    if (disease === 'diabetes') {
-      return [
-        { name: 'Pregnancies', label: 'Pregnancies', def: 1 },
-        { name: 'Glucose', label: 'Glucose (mg/dL)', def: 120 },
-        { name: 'BloodPressure', label: 'Blood Pressure (mmHg)', def: 70 },
-        { name: 'SkinThickness', label: 'Skin Thickness (mm)', def: 20 },
-        { name: 'Insulin', label: 'Insulin (mu U/ml)', def: 80 },
-        { name: 'BMI', label: 'BMI', def: 25.0 },
-        { name: 'DiabetesPedigreeFunction', label: 'Pedigree Function', def: 0.5 },
-        { name: 'Age', label: 'Age', def: 30 }
-      ];
-    } else if (disease === 'heart') {
-      return [
-        { name: 'age', label: 'Age', def: 50 },
-        { name: 'sex', label: 'Sex (1=M, 0=F)', def: 1 },
-        { name: 'cp', label: 'Chest Pain (0-3)', def: 0 },
-        { name: 'trestbps', label: 'Resting BP', def: 120 },
-        { name: 'chol', label: 'Cholesterol', def: 200 },
-        { name: 'fbs', label: 'Fasting Sugar (1/0)', def: 0 },
-        { name: 'restecg', label: 'Rest ECG (0-2)', def: 0 },
-        { name: 'thalach', label: 'Max Heart Rate', def: 150 },
-        { name: 'exang', label: 'Exercise Angina (1/0)', def: 0 },
-        { name: 'oldpeak', label: 'ST Depression', def: 1.0 },
-        { name: 'slope', label: 'Slope', def: 1 },
-        { name: 'ca', label: 'Major Vessels (0-3)', def: 0 },
-        { name: 'thal', label: 'Thalassemia', def: 1 }
-      ];
-    } else if (disease === 'kidney') {
-      return [
-        { name: 'bp_diastolic', label: 'BP Diastolic', def: 80 },
-        { name: 'bp_limit', label: 'BP Limit', def: 0 },
-        { name: 'sg', label: 'Specific Gravity', def: 1.020 },
-        { name: 'al', label: 'Albumin', def: 0 },
-        { name: 'rbc', label: 'RBC (1=Normal, 0=Abnormal)', def: 1 },
-        { name: 'su', label: 'Sugar', def: 0 },
-        { name: 'pc', label: 'Pus Cell', def: 1 },
-        { name: 'pcc', label: 'Pus Cell Clumps', def: 0 },
-        { name: 'ba', label: 'Bacteria', def: 0 },
-        { name: 'bgr', label: 'Blood Glucose Rand', def: 120 },
-        { name: 'bu', label: 'Blood Urea', def: 40 },
-        { name: 'sod', label: 'Sodium', def: 138 },
-        { name: 'sc', label: 'Serum Creatinine', def: 1.2 },
-        { name: 'pot', label: 'Potassium', def: 4.5 },
-        { name: 'hemo', label: 'Hemoglobin', def: 13 },
-        { name: 'pcv', label: 'Packed Cell Vol', def: 40 },
-        { name: 'rbcc', label: 'RBC Count', def: 5.2 },
-        { name: 'wbcc', label: 'WBC Count', def: 8000 },
-        { name: 'htn', label: 'Hypertension (1/0)', def: 0 },
-        { name: 'dm', label: 'Diabetes Mel (1/0)', def: 0 },
-        { name: 'cad', label: 'Coronary Art (1/0)', def: 0 },
-        { name: 'appet', label: 'Appetite (1=Good, 0=Poor)', def: 1 },
-        { name: 'pe', label: 'Pedal Edema (1/0)', def: 0 },
-        { name: 'ane', label: 'Anemia (1/0)', def: 0 },
-        { name: 'grf', label: 'GFR Level', def: 60 },
-        { name: 'stage', label: 'CKD Stage', def: 1 },
-        { name: 'affected', label: 'Affected Side', def: 0 },
-        { name: 'age', label: 'Age', def: 50 }
-      ];
-    } else if (disease === 'parkinsons') {
-      return [
-        { name: 'fo', label: 'MDVP:Fo(Hz)', def: 120 },
-        { name: 'fhi', label: 'MDVP:Fhi(Hz)', def: 150 },
-        { name: 'flo', label: 'MDVP:Flo(Hz)', def: 100 },
-        { name: 'jitter_percent', label: 'Jitter (%)', def: 0.005 },
-        { name: 'jitter_abs', label: 'Jitter (Abs)', def: 0.00003 },
-        { name: 'rap', label: 'MDVP:RAP', def: 0.003 },
-        { name: 'ppq', label: 'MDVP:PPQ', def: 0.003 },
-        { name: 'ddp', label: 'Jitter:DDP', def: 0.008 },
-        { name: 'shimmer', label: 'Shimmer', def: 0.03 },
-        { name: 'shimmer_db', label: 'Shimmer(dB)', def: 0.2 },
-        { name: 'apq3', label: 'Shimmer:APQ3', def: 0.015 },
-        { name: 'apq5', label: 'Shimmer:APQ5', def: 0.02 },
-        { name: 'apq', label: 'MDVP:APQ', def: 0.025 },
-        { name: 'dda', label: 'Shimmer:DDA', def: 0.045 },
-        { name: 'nhr', label: 'NHR', def: 0.02 },
-        { name: 'hnr', label: 'HNR', def: 20 },
-        { name: 'rpde', label: 'RPDE', def: 0.4 },
-        { name: 'dfa', label: 'DFA', def: 0.7 },
-        { name: 'spread1', label: 'Spread1', def: -5.0 },
-        { name: 'spread2', label: 'Spread2', def: 0.2 },
-        { name: 'd2', label: 'D2', def: 2.1 },
-        { name: 'ppe', label: 'PPE', def: 0.2 }
-      ];
-    }
-    return [];
-  };
-
-  const handleInputChange = (e) => {
+  const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: parseFloat(value) || 0 }));
-  };
+  }, []);
 
-  const handleTabChange = (diseaseId) => {
+  const handleTabChange = useCallback((diseaseId) => {
     setActiveTab(diseaseId);
     setResult(null);
     if (diseaseId === 'home') {
       setFormData({});
     } else {
-      const fields = getFields(diseaseId);
+      const fields = DISEASE_FIELDS[diseaseId] || [];
       const defaults = {};
       fields.forEach(f => defaults[f.name] = f.def);
       setFormData(defaults);
     }
-  };
+  }, []);
 
   const calculateRisk = async () => {
     setLoading(true);
-    setResult(null); // Clear previous results
+    setResult(null);
+    const startTime = performance.now();
     try {
       const response = await fetch(`${API_BASE}/predict/${activeTab}`, {
         method: 'POST',
@@ -208,8 +203,11 @@ const App = () => {
         body: JSON.stringify(formData)
       });
       const data = await response.json();
+      const endTime = performance.now();
+      const networkLatency = endTime - startTime;
+      
       if (response.ok) {
-        setResult(data);
+        setResult({ ...data, network_latency_ms: networkLatency });
       } else {
         console.error("Diagnostic Error:", data.detail);
         alert(`Diagnostic analysis failed: ${data.detail || 'Internal Server Error'}`);
@@ -222,8 +220,7 @@ const App = () => {
     }
   };
 
-  const renderGauge = (probability) => {
-    // Handle cases where probability might be null/undefined/NaN
+  const renderGauge = useMemo(() => (probability) => {
     const safeProb = (typeof probability === 'number' && !isNaN(probability)) ? probability : 0;
     const percentage = Math.round(safeProb * 100);
     const color = safeProb > 0.5 ? 'var(--vaen-red)' : 'var(--vaen-green)';
@@ -234,19 +231,18 @@ const App = () => {
     const angleRad = (angle * Math.PI) / 180;
     const endX = centerX + radius * Math.cos(angleRad);
     const endY = centerY + radius * Math.sin(angleRad);
-    const largeArcFlag = 0;
     
     return (
       <div className="gauge-container">
         <svg viewBox="0 0 100 60" width="100%">
           <path d="M 10 45 A 40 40 0 0 1 90 45" fill="none" stroke="#eee" strokeWidth="8" strokeLinecap="round" />
-          <path d={`M 10 45 A 40 40 0 ${largeArcFlag} 1 ${endX} ${endY}`} fill="none" stroke={color} strokeWidth="8" strokeLinecap="round" style={{ transition: 'stroke-dasharray 0.5s ease' }} />
+          <path d={`M 10 45 A 40 40 0 0 1 ${endX} ${endY}`} fill="none" stroke={color} strokeWidth="8" strokeLinecap="round" style={{ transition: 'stroke-dasharray 0.5s ease' }} />
           <text x="50" y="40" textAnchor="middle" fontSize="12" fontWeight="800" fill="var(--text-primary)">{percentage}%</text>
           <text x="50" y="55" textAnchor="middle" fontSize="6" fontWeight="600" fill="var(--text-secondary)">RISK LEVEL</text>
         </svg>
       </div>
     );
-  };
+  }, []);
 
   const renderHome = () => (
     <div className="container">
@@ -262,18 +258,18 @@ const App = () => {
           <p>Our Kidney Disease model achieves **95.5%** accuracy, providing reliable insights for early detection.</p>
         </div>
         <div className="card">
-          <div className="card-title">Privacy First</div>
-          <p>All data is processed locally and securely. No patient records are stored without explicit authorization.</p>
+          <div className="card-title">High Performance</div>
+          <p>Optimized diagnostic engine delivers predictions in milliseconds, ensuring a seamless clinical experience.</p>
         </div>
       </div>
     </div>
   );
 
   const renderForm = (disease) => {
-    const fields = getFields(disease);
+    const fields = DISEASE_FIELDS[disease] || [];
     return (
       <div className="container">
-        <h1>{DISEASES.find(d => d.id === disease).name} Analysis</h1>
+        <h1>{DISEASES.find(d => d.id === disease)?.name} Analysis</h1>
         <p className="subtitle">Fill in the clinical parameters to calculate the risk score.</p>
         <div className="form-grid">
           <div className="card" style={{ gridColumn: 'span 2' }}>
@@ -304,6 +300,9 @@ const App = () => {
                 ) : (
                   <div className="status-msg status-low">LOW RISK DETECTED: Parameters within normal range.</div>
                 )}
+                <div className="latency-info" style={{ marginTop: '1rem', fontSize: '0.7rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
+                    Engine: {result.latency_ms?.toFixed(2)}ms | Network: {result.network_latency_ms?.toFixed(2)}ms
+                </div>
               </div>
             ) : (
               <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>Please enter clinical data and click calculate.</p>
@@ -317,7 +316,7 @@ const App = () => {
   return (
     <div className="app-container">
       <nav className="navbar">
-        <div className="nav-logo" onClick={() => setActiveTab('home')}>
+        <div className="nav-logo" onClick={() => handleTabChange('home')}>
           <span className="logo-text">Vaen Health</span>
         </div>
         <div className="nav-links">
@@ -336,7 +335,7 @@ const App = () => {
         {activeTab === 'home' ? renderHome() : renderForm(activeTab)}
       </main>
       <footer className="footer">
-        <div className="footer-info">System Version: 2.1.0-alpha | Diagnostics Engine: AI-v4 | © 2026 Vaen Health</div>
+        <div className="footer-info">System Version: 2.1.1-optimized | Diagnostics Engine: AI-v4 | © 2026 Vaen Health</div>
       </footer>
     </div>
   );

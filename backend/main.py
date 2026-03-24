@@ -5,6 +5,12 @@ from pydantic import BaseModel
 import joblib
 import numpy as np
 import os
+import logging
+import time
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("AI_Disease_Predictor")
 
 app = FastAPI(title="AI Disease Predictor API")
 
@@ -20,8 +26,10 @@ app.add_middleware(
 # --- MODELS & SCALERS CACHE ---
 MODELS = {}
 SCALERS = {}
+DISEASES = ["diabetes", "heart", "kidney", "parkinsons"]
 
 def load_artifacts(disease):
+    """Load model and scaler for a specific disease."""
     if disease not in MODELS:
         # Resolve path relative to the project root
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -31,9 +39,21 @@ def load_artifacts(disease):
         if not os.path.exists(model_path) or not os.path.exists(scaler_path):
             raise FileNotFoundError(f"Artifacts for {disease} not found at {model_path}.")
             
+        logger.info(f"Loading artifacts for {disease}...")
         MODELS[disease] = joblib.load(model_path)
         SCALERS[disease] = joblib.load(scaler_path)
     return MODELS[disease], SCALERS[disease]
+
+@app.on_event("startup")
+async def startup_event():
+    """Pre-load all models on startup for faster first-request response."""
+    logger.info("Starting up AI Disease Predictor API...")
+    for disease in DISEASES:
+        try:
+            load_artifacts(disease)
+        except Exception as e:
+            logger.error(f"Failed to load artifacts for {disease}: {e}")
+    logger.info("All models pre-loaded successfully.")
 
 # --- REQUEST SCHEMAS ---
 class DiabetesInput(BaseModel):
@@ -122,54 +142,71 @@ def home():
 
 @app.post("/predict/diabetes")
 def predict_diabetes(data: DiabetesInput):
+    start_time = time.time()
     try:
         model, scaler = load_artifacts("diabetes")
-        feature_names = ['Pregnancies', 'Glucose', 'BloodPressure', 'SkinThickness', 'Insulin', 'BMI', 'DiabetesPedigreeFunction', 'Age']
-        df = pd.DataFrame([[data.Pregnancies, data.Glucose, data.BloodPressure, data.SkinThickness, data.Insulin, data.BMI, data.DiabetesPedigreeFunction, data.Age]], columns=feature_names)
-        scaled_features = scaler.transform(df)
+        # Use NumPy for faster processing than Pandas for single-row inference
+        input_data = np.array([[data.Pregnancies, data.Glucose, data.BloodPressure, data.SkinThickness, data.Insulin, data.BMI, data.DiabetesPedigreeFunction, data.Age]])
+        scaled_features = scaler.transform(input_data)
         prob = model.predict_proba(scaled_features)[0][1]
-        return {"risk_probability": float(prob), "prediction": int(prob > 0.5)}
+        
+        latency = (time.time() - start_time) * 1000
+        logger.info(f"Diabetes prediction completed in {latency:.2f}ms")
+        return {"risk_probability": float(prob), "prediction": int(prob > 0.5), "latency_ms": latency}
     except Exception as e:
+        logger.error(f"Diabetes prediction error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/predict/heart")
 def predict_heart(data: HeartInput):
+    start_time = time.time()
     try:
         model, scaler = load_artifacts("heart")
-        feature_names = ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg', 'thalach', 'exang', 'oldpeak', 'slope', 'ca', 'thal']
-        df = pd.DataFrame([[data.age, data.sex, data.cp, data.trestbps, data.chol, data.fbs, data.restecg, data.thalach, data.exang, data.oldpeak, data.slope, data.ca, data.thal]], columns=feature_names)
-        scaled_features = scaler.transform(df)
+        input_data = np.array([[data.age, data.sex, data.cp, data.trestbps, data.chol, data.fbs, data.restecg, data.thalach, data.exang, data.oldpeak, data.slope, data.ca, data.thal]])
+        scaled_features = scaler.transform(input_data)
         prob = model.predict_proba(scaled_features)[0][1]
-        return {"risk_probability": float(prob), "prediction": int(prob > 0.5)}
+        
+        latency = (time.time() - start_time) * 1000
+        logger.info(f"Heart prediction completed in {latency:.2f}ms")
+        return {"risk_probability": float(prob), "prediction": int(prob > 0.5), "latency_ms": latency}
     except Exception as e:
+        logger.error(f"Heart prediction error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/predict/kidney")
 def predict_kidney(data: KidneyInput):
+    start_time = time.time()
     try:
         model, scaler = load_artifacts("kidney")
-        feature_names = ['bp (Diastolic)', 'bp limit', 'sg', 'al', 'rbc', 'su', 'pc', 'pcc', 'ba', 'bgr', 'bu', 'sod', 'sc', 'pot', 'hemo', 'pcv', 'rbcc', 'wbcc', 'htn', 'dm', 'cad', 'appet', 'pe', 'ane', 'grf', 'stage', 'affected', 'age']
-        df = pd.DataFrame([[data.bp_diastolic, data.bp_limit, data.sg, data.al, data.rbc, data.su, data.pc, data.pcc, data.ba, data.bgr, data.bu, data.sod, data.sc, data.pot, data.hemo, data.pcv, data.rbcc, data.wbcc, data.htn, data.dm, data.cad, data.appet, data.pe, data.ane, data.grf, data.stage, data.affected, data.age]], columns=feature_names)
-        scaled_features = scaler.transform(df)
+        input_data = np.array([[data.bp_diastolic, data.bp_limit, data.sg, data.al, data.rbc, data.su, data.pc, data.pcc, data.ba, data.bgr, data.bu, data.sod, data.sc, data.pot, data.hemo, data.pcv, data.rbcc, data.wbcc, data.htn, data.dm, data.cad, data.appet, data.pe, data.ane, data.grf, data.stage, data.affected, data.age]])
+        scaled_features = scaler.transform(input_data)
         try:
             prob = model.predict_proba(scaled_features)[0][1]
         except:
             prediction = model.predict(scaled_features)[0]
             prob = 1.0 if prediction == 1 else 0.0
-        return {"risk_probability": float(prob), "prediction": int(prob > 0.5)}
+        
+        latency = (time.time() - start_time) * 1000
+        logger.info(f"Kidney prediction completed in {latency:.2f}ms")
+        return {"risk_probability": float(prob), "prediction": int(prob > 0.5), "latency_ms": latency}
     except Exception as e:
+        logger.error(f"Kidney prediction error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/predict/parkinsons")
 def predict_parkinsons(data: ParkinsonsInput):
+    start_time = time.time()
     try:
         model, scaler = load_artifacts("parkinsons")
-        feature_names = ['MDVP:Fo(Hz)', 'MDVP:Fhi(Hz)', 'MDVP:Flo(Hz)', 'MDVP:Jitter(%)', 'MDVP:Jitter(Abs)', 'MDVP:RAP', 'MDVP:PPQ', 'Jitter:DDP', 'MDVP:Shimmer', 'MDVP:Shimmer(dB)', 'Shimmer:APQ3', 'Shimmer:APQ5', 'MDVP:APQ', 'Shimmer:DDA', 'NHR', 'HNR', 'RPDE', 'DFA', 'spread1', 'spread2', 'D2', 'PPE']
-        df = pd.DataFrame([[data.fo, data.fhi, data.flo, data.jitter_percent, data.jitter_abs, data.rap, data.ppq, data.ddp, data.shimmer, data.shimmer_db, data.apq3, data.apq5, data.apq, data.dda, data.nhr, data.hnr, data.rpde, data.dfa, data.spread1, data.spread2, data.d2, data.ppe]], columns=feature_names)
-        scaled_features = scaler.transform(df)
+        input_data = np.array([[data.fo, data.fhi, data.flo, data.jitter_percent, data.jitter_abs, data.rap, data.ppq, data.ddp, data.shimmer, data.shimmer_db, data.apq3, data.apq5, data.apq, data.dda, data.nhr, data.hnr, data.rpde, data.dfa, data.spread1, data.spread2, data.d2, data.ppe]])
+        scaled_features = scaler.transform(input_data)
         prob = model.predict_proba(scaled_features)[0][1]
-        return {"risk_probability": float(prob), "prediction": int(prob > 0.5)}
+        
+        latency = (time.time() - start_time) * 1000
+        logger.info(f"Parkinson's prediction completed in {latency:.2f}ms")
+        return {"risk_probability": float(prob), "prediction": int(prob > 0.5), "latency_ms": latency}
     except Exception as e:
+        logger.error(f"Parkinson's prediction error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
