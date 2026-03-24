@@ -12,6 +12,8 @@ Vaen Health AI is a professional, full-stack medical diagnostic platform that us
 
 ## 📸 UI Showcase
 
+![Dashboard Preview](reports/dashboard_preview.png)
+
 Refer to the `reports/` directory for visual previews and model performance metrics.
 
 ## 🏗️ Architecture & System Flow
