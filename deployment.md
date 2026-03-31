@@ -29,3 +29,10 @@ Render is an excellent choice for full-stack applications with a Python backend 
 ### Important Considerations
 - **CORS**: Ensure the Backend has the Frontend's live URL in its CORS `allow_origins` list.
 - **Model Artifacts**: Ensure the `.pkl` files in `models/` are pushed to GitHub so the live server can load them.
+
+### 🛠️ Uptime Monitoring (Avoid Cold Starts)
+Render's free tier spins down services after 15 minutes of inactivity. To keep the backend awake:
+- **Service**: [Uptime Robot](https://uptimerobot.com/)
+- **Monitor Type**: HTTP(s)
+- **URL**: `https://ai-disease-predictor-nbdj.onrender.com/health` (Supports both `GET` and `HEAD`)
+- **Interval**: 5-15 minutes

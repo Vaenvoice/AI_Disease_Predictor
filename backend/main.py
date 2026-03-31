@@ -136,9 +136,19 @@ class ParkinsonsInput(BaseModel):
     ppe: float
 
 # --- ENDPOINTS ---
-@app.get("/")
-def home():
+@app.api_route("/", methods=["GET", "HEAD"])
+async def home():
+    """Home endpoint that confirms the API is running (supports GET and HEAD for uptime monitoring)."""
     return {"message": "AI Disease Predictor API is running."}
+
+@app.api_route("/health", methods=["GET", "HEAD"])
+async def health():
+    """Structured health check endpoint for monitoring services like Uptime Robot."""
+    return {
+        "status": "healthy",
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
+        "service": "AI Disease Predictor API"
+    }
 
 @app.post("/predict/diabetes")
 async def predict_diabetes(data: DiabetesInput):
