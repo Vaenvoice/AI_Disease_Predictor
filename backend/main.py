@@ -28,41 +28,22 @@ MODELS = {}
 SCALERS = {}
 DISEASES = ["diabetes", "heart", "kidney", "parkinsons"]
 
-def _find_project_root() -> str:
-    """Robustly find the project root containing the models/ directory.
-    
-    Railway (and other containers) may run the app from a different working
-    directory than expected, causing os.path.dirname(__file__) to resolve to
-    the filesystem root (/). This function tries multiple candidate paths and
-    returns the first one that actually contains a models/ subdirectory.
-    """
-    candidates = [
-        # Strategy 1: two levels up from backend/main.py  → /app
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        # Strategy 2: current working directory (Railway default: /app)
-        os.getcwd(),
-        # Strategy 3: the directory of main.py itself (fallback)
-        os.path.dirname(os.path.abspath(__file__)),
-    ]
-    for path in candidates:
-        if os.path.isdir(os.path.join(path, "models")):
-            logger.info(f"Project root found at: {path}")
-            return path
-    # Last resort: return cwd and let the FileNotFoundError surface clearly
-    logger.warning(f"Could not find models/ directory. Candidates tried: {candidates}")
-    return os.getcwd()
-
-_PROJECT_ROOT = _find_project_root()
+# Models live at backend/models/ — always relative to this file, no guessing needed.
+_MODELS_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "models")
+logger.info(f"Models directory: {_MODELS_DIR}")
+logger.info(f"Models directory exists: {os.path.isdir(_MODELS_DIR)}")
+if os.path.isdir(_MODELS_DIR):
+    logger.info(f"Models directory contents: {os.listdir(_MODELS_DIR)}")
 
 def load_artifacts(disease):
     """Load model and scaler for a specific disease."""
     if disease not in MODELS:
-        model_path = os.path.join(_PROJECT_ROOT, "models", f"{disease}_best_model.pkl")
-        scaler_path = os.path.join(_PROJECT_ROOT, "models", f"{disease}_scaler.pkl")
-        
+        model_path = os.path.join(_MODELS_DIR, f"{disease}_best_model.pkl")
+        scaler_path = os.path.join(_MODELS_DIR, f"{disease}_scaler.pkl")
+
         if not os.path.exists(model_path) or not os.path.exists(scaler_path):
             raise FileNotFoundError(f"Artifacts for {disease} not found at {model_path}.")
-            
+
         logger.info(f"Loading artifacts for {disease}...")
         MODELS[disease] = joblib.load(model_path)
         SCALERS[disease] = joblib.load(scaler_path)
