@@ -1,38 +1,63 @@
 # Deployment Guide: Vaen Health AI
 
-To get a live link for this project, you need to deploy the **Frontend** and the **Backend** separately (or together on a platform like Render).
-
-## 🚀 Recommended Deployment Strategy (Render)
-
-Render is an excellent choice for full-stack applications with a Python backend and a React frontend.
-
-### 1. Deploy the Backend (FastAPI)
-- **Service Type**: Web Service
-- **Link**: [https://ai-disease-predictor-nbdj.onrender.com](https://ai-disease-predictor-nbdj.onrender.com)
-- **Build Command**: `pip install -r backend/requirements.txt`
-- **Start Command**: `gunicorn -w 4 -k uvicorn.workers.UvicornWorker backend.main:app`
-- **Root Directory**: `.` (Project Root)
-
-### 2. Deploy the Frontend (React/Vite)
-- **Service Type**: Static Site
-- **Link**: [https://vaen-health.onrender.com](https://vaen-health.onrender.com)
-- **Build Command**: `cd frontend && npm install && npm run build`
-- **Publish Directory**: `frontend/dist`
-- **Environment Variables**: Set `VITE_API_BASE` to `https://ai-disease-predictor-nbdj.onrender.com`.
-
-##  alternativas (Vercel + Railway)
-- **Frontend**: Deploy to **Vercel** (connect your GitHub repo, select the `frontend` directory).
-- **Backend**: Deploy to **Railway** or **Render** for the Python API.
+The **Frontend** is deployed separately from the **Backend**.
 
 ---
 
-### Important Considerations
-- **CORS**: Ensure the Backend has the Frontend's live URL in its CORS `allow_origins` list.
-- **Model Artifacts**: Ensure the `.pkl` files in `models/` are pushed to GitHub so the live server can load them.
+## 🚀 Backend — Railway (FastAPI)
 
-### 🛠️ Uptime Monitoring (Avoid Cold Starts)
-Render's free tier spins down services after 15 minutes of inactivity. To keep the backend awake:
+Railway is the primary hosting platform for the Python backend.
+
+### Setup Steps
+
+1. Go to [railway.app](https://railway.app) and create a new project.
+2. Click **"Deploy from GitHub repo"** and connect this repository.
+3. Railway will auto-detect the `railway.toml` and `nixpacks.toml` and configure the build.
+4. Once deployed, copy the **public URL** Railway generates (e.g. `https://your-app.up.railway.app`).
+
+### Build & Start Commands (auto-configured via `railway.toml`)
+- **Build**: `pip install -r backend/requirements.txt`
+- **Start**: `gunicorn -w 4 -k uvicorn.workers.UvicornWorker backend.main:app --bind 0.0.0.0:$PORT`
+- **Health Check**: `/health`
+
+### Environment Variables (set in Railway dashboard)
+No required secrets — models are loaded from the `models/` directory committed to git.
+
+> ⚠️ **Important**: Make sure all `.pkl` files in `models/` are pushed to GitHub so Railway can load them at startup.
+
+---
+
+## 🌐 Frontend — Vercel / Render Static Site (React/Vite)
+
+### Vercel (Recommended)
+1. Go to [vercel.com](https://vercel.com) and import this GitHub repo.
+2. Set **Root Directory** to `frontend`.
+3. Set the environment variable:
+   - `VITE_API_BASE` = `https://your-app.up.railway.app` ← paste your Railway backend URL here
+4. Deploy.
+
+### Render Static Site (Alternative)
+- **Build Command**: `cd frontend && npm install && npm run build`
+- **Publish Directory**: `frontend/dist`
+- **Environment Variable**: `VITE_API_BASE` = `https://your-app.up.railway.app`
+
+---
+
+## ⚙️ CORS
+
+The backend uses `allow_origins=["*"]` so all frontend origins are accepted by default.
+To restrict to your specific frontend URL, update `main.py`:
+
+```python
+allow_origins=["https://vaen-health.vercel.app"]
+```
+
+---
+
+## 🛠️ Uptime Monitoring
+
+Railway's free tier (Hobby plan) **does not spin down** like Render — no keep-alive pings needed.
+If you'd still like monitoring:
 - **Service**: [Uptime Robot](https://uptimerobot.com/)
-- **Monitor Type**: HTTP(s)
-- **URL**: `https://ai-disease-predictor-nbdj.onrender.com/health` (Supports both `GET` and `HEAD`)
-- **Interval**: 5-15 minutes
+- **URL**: `https://your-app.up.railway.app/health`
+- **Interval**: 5 minutes
