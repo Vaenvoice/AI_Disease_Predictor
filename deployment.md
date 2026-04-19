@@ -16,10 +16,18 @@ Since your previous backend account was suspended, follow these steps to deploy 
     -   **Region**: (Choose the one closest to you)
     -   **Language**: `Python 3`
     -   **Build Command**: `pip install -r backend/requirements.txt`
-    -   **Start Command**: `gunicorn -w 4 -k uvicorn.workers.UvicornWorker backend.main:app --bind 0.0.0.0:$PORT`
+    -   **Start Command**: `gunicorn -w 1 -k uvicorn.workers.UvicornWorker backend.main:app --bind 0.0.0.0:$PORT`
     -   **Instance Type**: `Free`
 5.  Click **"Create Web Service"**.
-6.  Once deployed, copy the **Public URL** (e.g., `https://ai-disease-predictor-backend.onrender.com`).
+6.  **IMPORTANT**: Go to **"Settings"** and ensure **"Auto-Deploy"** is ON.
+
+---
+
+## 💡 Memory Management (Free Tier)
+To stay within the 512MB RAM limit, this project:
+- Uses **Lazy Loading** (models load on first use, not all at once).
+- Uses a **Single Worker** (`-w 1`) instead of multiple parallel processes.
+- Has been optimized to remove **Pandas**, saving ~50MB of RAM.
 
 ---
 

@@ -1,4 +1,4 @@
-import pandas as pd
+# import pandas as pd # Removed for memory optimization
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -49,16 +49,9 @@ def load_artifacts(disease):
         SCALERS[disease] = joblib.load(scaler_path)
     return MODELS[disease], SCALERS[disease]
 
-@app.on_event("startup")
-async def startup_event():
-    """Pre-load all models on startup for faster first-request response."""
-    logger.info("Starting up AI Disease Predictor API...")
-    for disease in DISEASES:
-        try:
-            load_artifacts(disease)
-        except Exception as e:
-            logger.error(f"Failed to load artifacts for {disease}: {e}")
-    logger.info("All models pre-loaded successfully.")
+# --- STARTUP EVENT REMOVED FOR LAZY LOADING ---
+# Pre-loading models on startup exceeds memory/time limits on Free Tier.
+# Models will now load on-demand during the first request.
 
 # --- REQUEST SCHEMAS ---
 class DiabetesInput(BaseModel):

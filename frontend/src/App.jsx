@@ -1,6 +1,10 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+console.log("Diagnostic: Connecting to API at", API_BASE);
+if (API_BASE.includes("localhost") && window.location.hostname !== "localhost") {
+  console.warn("WARNING: Production frontend is trying to connect to a localhost backend. Check your VITE_API_BASE env var!");
+}
 
 const DISEASES = [
   { id: 'diabetes', name: 'Diabetes' },

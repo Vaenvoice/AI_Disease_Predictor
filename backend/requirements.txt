@@ -1,6 +1,6 @@
 fastapi
 uvicorn
-pandas
+# pandas - Removed for memory optimization
 numpy
 scikit-learn
 joblib
