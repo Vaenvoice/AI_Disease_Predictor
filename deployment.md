@@ -1,63 +1,57 @@
-# Deployment Guide: Vaen Health AI
+# Deployment Guide: Vaen Health AI (Render)
 
-The **Frontend** is deployed separately from the **Backend**.
-
----
-
-## 🚀 Backend — Railway (FastAPI)
-
-Railway is the primary hosting platform for the Python backend.
-
-### Setup Steps
-
-1. Go to [railway.app](https://railway.app) and create a new project.
-2. Click **"Deploy from GitHub repo"** and connect this repository.
-3. Railway will auto-detect the `railway.toml` and `nixpacks.toml` and configure the build.
-4. Once deployed, copy the **public URL** Railway generates (e.g. `https://your-app.up.railway.app`).
-
-### Build & Start Commands (auto-configured via `railway.toml`)
-- **Build**: `pip install -r backend/requirements.txt`
-- **Start**: `gunicorn -w 4 -k uvicorn.workers.UvicornWorker backend.main:app --bind 0.0.0.0:$PORT`
-- **Health Check**: `/health`
-
-### Environment Variables (set in Railway dashboard)
-No required secrets — models are loaded from the `models/` directory committed to git.
-
-> ⚠️ **Important**: Make sure all `.pkl` files in `models/` are pushed to GitHub so Railway can load them at startup.
+This guide explains how to deploy the AI Disease Predictor to **Render** and keep it from "sleeping" on the free tier.
 
 ---
 
-## 🌐 Frontend — Vercel / Render Static Site (React/Vite)
+## 🚀 Easy Deployment (Blueprint)
 
-### Vercel (Recommended)
-1. Go to [vercel.com](https://vercel.com) and import this GitHub repo.
-2. Set **Root Directory** to `frontend`.
-3. Set the environment variable:
-   - `VITE_API_BASE` = `https://your-app.up.railway.app` ← paste your Railway backend URL here
-4. Deploy.
+The repository includes a `render.yaml` file that allows you to deploy both the Backend and Frontend in one go.
 
-### Render Static Site (Alternative)
-- **Build Command**: `cd frontend && npm install && npm run build`
-- **Publish Directory**: `frontend/dist`
-- **Environment Variable**: `VITE_API_BASE` = `https://your-app.up.railway.app`
+1.  Log in to [Render](https://render.com).
+2.  Click **"New"** → **"Blueprint"**.
+3.  Connect this GitHub repository.
+4.  Render will detect `render.yaml` and offer to create the following services:
+    -   `ai-disease-predictor-backend`
+    -   `ai-disease-predictor-frontend`
+5.  Click **"Apply"**.
 
 ---
 
-## ⚙️ CORS
+## 🛠️ Configuration & Secrets
 
-The backend uses `allow_origins=["*"]` so all frontend origins are accepted by default.
-To restrict to your specific frontend URL, update `main.py`:
+### 1. Frontend Backend URL
+The `render.yaml` automatically connects the frontend to the backend. If you need to change it manually:
+-   In the Frontend service settings, set the environment variable:
+    -   `VITE_API_BASE` = `https://your-backend-url.onrender.com`
 
-```python
-allow_origins=["https://vaen-health.vercel.app"]
-```
+### 2. Preventing Sleep (Keep-Alive)
+Render's free tier spins down after 15 minutes of inactivity. We solve this using a **GitHub Action** that pings your app every 10 minutes.
+
+**Setup Steps:**
+1.  Go to your GitHub repository → **Settings** → **Secrets and variables** → **Actions**.
+2.  Add a **New repository secret**:
+    -   **Name**: `RENDER_BACKEND_URL`
+    -   **Value**: `https://your-backend-url.onrender.com/health`
+3.  Add another secret (optional):
+    -   **Name**: `RENDER_FRONTEND_URL`
+    -   **Value**: `https://your-frontend-url.onrender.com`
+4.  Go to the **Actions** tab in GitHub and ensure the "Keep Alive" workflow is enabled.
 
 ---
 
-## 🛠️ Uptime Monitoring
+## ⚙️ Backend Details
+-   **Runtime**: Python 3.10
+-   **Build Command**: `pip install -r backend/requirements.txt`
+-   **Start Command**: `gunicorn -w 4 -k uvicorn.workers.UvicornWorker backend.main:app --bind 0.0.0.0:$PORT`
+-   **Health Check**: `/health`
 
-Railway's free tier (Hobby plan) **does not spin down** like Render — no keep-alive pings needed.
-If you'd still like monitoring:
-- **Service**: [Uptime Robot](https://uptimerobot.com/)
-- **URL**: `https://your-app.up.railway.app/health`
-- **Interval**: 5 minutes
+## 🌐 Frontend Details
+-   **Runtime**: Static Site
+-   **Build Command**: `cd frontend && npm install && npm run build`
+-   **Publish Directory**: `frontend/dist`
+
+---
+
+## 🧪 Verification
+After deployment, open your browser's Developer Tools (F12) and check the **Network** tab. You should see a "pulse" request every 10 minutes to the `/health` endpoint while the tab is open. This is the **Frontend Heartbeat** which keeps the backend warm while you browse.

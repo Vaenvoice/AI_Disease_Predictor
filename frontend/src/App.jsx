@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
@@ -173,6 +173,16 @@ const App = () => {
   const [formData, setFormData] = useState({});
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  
+  // Frontend Heartbeat: Pings the backend every 10 minutes to prevent Render from sleeping
+  useEffect(() => {
+    const heartbeat = setInterval(() => {
+      console.log("Sending heartbeat pulse to backend...");
+      fetch(`${API_BASE}/health`).catch(err => console.error("Heartbeat failed:", err));
+    }, 10 * 60 * 1000); // 10 minutes
+    
+    return () => clearInterval(heartbeat);
+  }, []);
 
   const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;
