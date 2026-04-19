@@ -1,57 +1,54 @@
-# Deployment Guide: Vaen Health AI (Render)
+# Deployment Guide: Vaen Health AI (Manual Render Setup)
 
-This guide explains how to deploy the AI Disease Predictor to **Render** and keep it from "sleeping" on the free tier.
+This guide provides instructions for deploying a **new Backend** and connecting your **existing Frontend** on Render.
 
 ---
 
-## 🚀 Easy Deployment (Blueprint)
+## 🚀 1. Deploy the New Backend
 
-The repository includes a `render.yaml` file that allows you to deploy both the Backend and Frontend in one go.
+Since your previous backend account was suspended, follow these steps to deploy on a new Render account:
 
-1.  Log in to [Render](https://render.com).
-2.  Click **"New"** → **"Blueprint"**.
+1.  Log in to your **new Render account**.
+2.  Click **"New"** → **"Web Service"**.
 3.  Connect this GitHub repository.
-4.  Render will detect `render.yaml` and offer to create the following services:
-    -   `ai-disease-predictor-backend`
-    -   `ai-disease-predictor-frontend`
-5.  Click **"Apply"**.
+4.  Configure the service with these settings:
+    -   **Name**: `ai-disease-predictor-backend`
+    -   **Region**: (Choose the one closest to you)
+    -   **Language**: `Python 3`
+    -   **Build Command**: `pip install -r backend/requirements.txt`
+    -   **Start Command**: `gunicorn -w 4 -k uvicorn.workers.UvicornWorker backend.main:app --bind 0.0.0.0:$PORT`
+    -   **Instance Type**: `Free`
+5.  Click **"Create Web Service"**.
+6.  Once deployed, copy the **Public URL** (e.g., `https://ai-disease-predictor-backend.onrender.com`).
 
 ---
 
-## 🛠️ Configuration & Secrets
+## 🌐 2. Connect Your Existing Frontend
 
-### 1. Frontend Backend URL
-The `render.yaml` automatically connects the frontend to the backend. If you need to change it manually:
--   In the Frontend service settings, set the environment variable:
-    -   `VITE_API_BASE` = `https://your-backend-url.onrender.com`
+Your frontend is already live at `https://vaen-health.onrender.com`. You just need to update it to point to the new backend:
 
-### 2. Preventing Sleep (Keep-Alive)
-Render's free tier spins down after 15 minutes of inactivity. We solve this using a **GitHub Action** that pings your app every 10 minutes.
-
-**Setup Steps:**
-1.  Go to your GitHub repository → **Settings** → **Secrets and variables** → **Actions**.
-2.  Add a **New repository secret**:
-    -   **Name**: `RENDER_BACKEND_URL`
-    -   **Value**: `https://your-backend-url.onrender.com/health`
-3.  Add another secret (optional):
-    -   **Name**: `RENDER_FRONTEND_URL`
-    -   **Value**: `https://your-frontend-url.onrender.com`
-4.  Go to the **Actions** tab in GitHub and ensure the "Keep Alive" workflow is enabled.
+1.  Go to your **Frontend Static Site** dashboard on Render.
+2.  Go to **"Settings"** → **"Environment Variables"**.
+3.  Update (or add) the following variable:
+    -   **Key**: `VITE_API_BASE`
+    -   **Value**: `https://your-new-backend-url.onrender.com` (Paste your new backend URL here)
+4.  Render will automatically re-deploy your frontend with the new connection.
 
 ---
 
-## ⚙️ Backend Details
--   **Runtime**: Python 3.10
--   **Build Command**: `pip install -r backend/requirements.txt`
--   **Start Command**: `gunicorn -w 4 -k uvicorn.workers.UvicornWorker backend.main:app --bind 0.0.0.0:$PORT`
--   **Health Check**: `/health`
+## 🛠️ 3. Prevent Backend Sleep (Keep-Alive)
 
-## 🌐 Frontend Details
--   **Runtime**: Static Site
--   **Build Command**: `cd frontend && npm install && npm run build`
--   **Publish Directory**: `frontend/dist`
+To prevent the Free Tier backend from spinning down after 15 minutes of inactivity:
+
+1.  Go to your **GitHub Repository** → **Settings** → **Secrets and variables** → **Actions**.
+2.  Update the following secrets:
+    -   **`RENDER_BACKEND_URL`**: `https://your-new-backend-url.onrender.com/health`
+    -   **`RENDER_FRONTEND_URL`**: `https://vaen-health.onrender.com`
+3.  Ensure the **"Keep Alive"** workflow is enabled in the **Actions** tab of your repository.
 
 ---
 
-## 🧪 Verification
-After deployment, open your browser's Developer Tools (F12) and check the **Network** tab. You should see a "pulse" request every 10 minutes to the `/health` endpoint while the tab is open. This is the **Frontend Heartbeat** which keeps the backend warm while you browse.
+## ⚙️ Summary of Local Changes
+-   **Cleanup**: Removed `render.yaml`, `railway.toml`, and other legacy configs.
+-   **Heartbeat**: Added an internal heartbeat to `App.jsx` that pings the backend every 10 minutes while the site is open in a browser.
+-   **Portability**: The GitHub Action now uses secrets so you can switch accounts easily without editing code.
